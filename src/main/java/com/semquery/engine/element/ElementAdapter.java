@@ -6,6 +6,6 @@ import org.antlr.v4.runtime.TokenStream;
 
 public interface ElementAdapter<T extends RuleContext> {
 
-    Element convert(T ctx, TokenStream ts, Analyzer a);
+    Element convert(T ctx, TokenStream ts, Analyzer a, Element parent);
 
 }

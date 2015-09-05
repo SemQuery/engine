@@ -1,30 +1,79 @@
 package com.semquery.engine;
 
-import com.semquery.engine.analyze.Java8Analyzer;
+import com.semquery.engine.analyze.LanguageHandler;
+import com.semquery.engine.analyze.LanguageHandlers;
 import com.semquery.engine.element.Element;
-import com.semquery.engine.parsers.Java8Lexer;
-import com.semquery.engine.parsers.Java8Parser;
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.TokenStream;
 
-import java.io.InputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Engine {
 
+    static ExecutorService exec;
+
+    static AtomicInteger inc = new AtomicInteger();
+    static int files = 0;
+
     public static void main(String[] args) throws Exception {
-        InputStream in = Engine.class.getClassLoader().getResourceAsStream("test.java");
+        exec = Executors.newFixedThreadPool(10);
+        long time = System.currentTimeMillis();
+        for (String arg : args) {
+            recur(new File(arg));
+        }
+        exec.shutdown();
+        while (!exec.isTerminated());
 
-        ANTLRInputStream stream = new ANTLRInputStream(in);
-        Java8Lexer lexer = new Java8Lexer(stream);
+        System.out.println("Finished in " + (System.currentTimeMillis() - time) + "ms");
+        System.out.println("" + files + " files, " + inc.get() + " elements");
+    }
 
-        TokenStream tokens = new CommonTokenStream(lexer);
-        Java8Parser parser = new Java8Parser(tokens);
+    public Engine() {
+    }
 
-        Java8Analyzer ja = new Java8Analyzer();
+    public static void launchParsing(File f, LanguageHandler handler) {
+        exec.execute(() -> {
+            try {
+                System.out.println("Launching file " + f);
 
-        Element elem = ja.analyze(parser.compilationUnit(), tokens);
-        elem.prettyPrint();
+                Element ele = handler.createElement(new FileInputStream(f));
+
+                ele.prettyPrint();
+
+                countElems(ele);
+
+            } catch (Exception e) {
+            }
+        });
+    }
+
+    static void countElems(Element e) {
+        inc.incrementAndGet();
+
+        for (Element child : e.getChildren())
+            countElems(child);
+    }
+
+    public static void recur(File f) {
+        if (!f.exists())
+            return;
+
+        if (f.isDirectory()) {
+            for (File child : f.listFiles())
+                recur(child);
+        } else {
+            String name = f.getName();
+            int lastDot = name.lastIndexOf('.');
+            String ext  = name.substring(lastDot + 1);
+
+            LanguageHandler handler = LanguageHandlers.handlerFor(ext);
+            if (handler != null) {
+                launchParsing(f, handler);
+                files++;
+            }
+        }
     }
 
 }

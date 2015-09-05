@@ -3,11 +3,10 @@ package com.semquery.engine.element;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.misc.Interval;
+import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Element {
 
@@ -120,6 +119,55 @@ public class Element {
             if (child != null)
                 child.prettyPrint(lvl + 1);
         }
+    }
+
+    public static BasicBSONObject createBSON(Element e) {
+        BasicBSONList list = new BasicBSONList();
+        Map<Element, Integer> lookup = new Hashtable<>();
+
+        e.toBSON(list, lookup);
+
+        return new BasicBSONObject("e", list);
+    }
+
+    private void toBSON(BasicBSONList list, Map<Element, Integer> lookup) {
+        for (Element child : children) {
+            if (child != null) {
+                child.toBSON(list, lookup);
+            }
+        }
+        for (Object o : attributes.values()) {
+            if (o instanceof Element)
+                ((Element) o).toBSON(list, lookup);
+        }
+
+        BasicBSONObject obj = new BasicBSONObject();
+        obj.put("t", type);
+
+        BasicBSONObject attrs = new BasicBSONObject(attributes.size());
+        for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+            if (entry.getValue() instanceof String) {
+                attrs.put(entry.getKey(), entry.getValue());
+            } else if (entry.getValue() instanceof Element) {
+                int index = lookup.get(entry.getValue());
+                attrs.put(entry.getKey(), index);
+            }
+        }
+        obj.put("a", attrs);
+
+        BasicBSONList childIndices = new BasicBSONList();
+        for (Element child : children) {
+            if (child != null) {
+                int index = lookup.get(child);
+                childIndices.add(index);
+            }
+
+        }
+        obj.put("c", childIndices);
+
+        int insertIdx = list.size();
+        list.add(insertIdx, obj);
+        lookup.put(this, insertIdx);
     }
 
 }
