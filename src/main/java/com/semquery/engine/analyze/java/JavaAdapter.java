@@ -24,11 +24,13 @@ public enum JavaAdapter {
 
         PACKAGE(PackageDeclarationContext.class, (PackageDeclarationContext ctx, TokenStream ts, Analyzer a, Element p) -> {
             return new Element("package")
+                    .withPosition(ctx, ts)
                     .withAttribute("name", ctx.qualifiedName().getText());
         }),
 
         IMPORT(ImportDeclarationContext.class, (ImportDeclarationContext ctx, TokenStream ts, Analyzer a, Element p) -> {
             return new Element("import")
+                    .withPosition(ctx, ts)
                     .withAttribute("name", ctx.qualifiedName().getText());
         }),
 
@@ -53,6 +55,7 @@ public enum JavaAdapter {
 
         LOCAL_VAR(LocalVariableDeclarationStatementContext.class, (LocalVariableDeclarationStatementContext ctx, TokenStream ts, Analyzer a, Element p) ->  {
             return new Element("local_var")
+                    .withPosition(ctx, ts)
                     .withAttribute("type", ctx.localVariableDeclaration().type().getText())
                     .withAttribute("name", ctx.localVariableDeclaration().variableDeclarators().getText());
         }),
@@ -67,6 +70,7 @@ public enum JavaAdapter {
             switch (first) {
                 case "if":
                     Element ifEle = new Element("if");
+                            ifEle.withChild(a.analyze(ctx.parExpression().expression(), ts, p));
                             ifEle.withChild(new Element("then").withChild(
                                     a.analyze(ctx.statement(0), ts, ifEle)
                             ));
@@ -75,14 +79,16 @@ public enum JavaAdapter {
                                 a.analyze(ctx.statement(1), ts, ifEle)
                         ));
                     }
-                    return ifEle;
+                    return ifEle
+                            .withPosition(ctx, ts);
                 case ";":
-                    return new Element("pass");
+                    return new Element("pass").withPosition(ctx, ts);
                 case "return":
                     Element retEle = new Element("return");
                     if (ctx.expression().size() > 0)
                         retEle.withChild(a.analyze(ctx.expression(0), ts, retEle));
-                    return retEle;
+                    return retEle
+                            .withPosition(ctx, ts);
                 case "throw":
                     Element throwEle = new Element("throw");
                     return throwEle.withChild(
@@ -92,26 +98,25 @@ public enum JavaAdapter {
                     Element forEle = new Element("for");
                     return forEle.withChild(
                             a.analyze(ctx.statement(0), ts, forEle)
-                    );
+                    ).withPosition(ctx, ts);
                 case "while":
                     Element whileEle = new Element("while");
                     return whileEle.withChild(
                             a.analyze(ctx.statement(0), ts, whileEle)
-                    );
+                    ).withPosition(ctx, ts);
                 case "continue":
-                    return new Element("continue");
+                    return new Element("continue").withPosition(ctx, ts);
                 case "break":
-                    return new Element("break");
+                    return new Element("break").withPosition(ctx, ts);
             }
-            System.out.println(">>> STMT start " + ctx.getStart().getText());
             return null;
         }),
 
         EXPR(ExpressionContext.class, (ExpressionContext ctx, TokenStream ts, Analyzer a, Element p) -> {
             List<Element> elem = new ArrayList<>();
-            findIdentifiers(ctx, elem);
+            findIdentifiers(ctx, ts, elem);
 
-            return new Element("expr").withChildren(elem);
+            return new Element("expr").withChildren(elem).withPosition(ctx, ts);
         }),
 
         BLOCK(BlockContext.class, (BlockContext ctx, TokenStream ts, Analyzer a, Element p) -> {
@@ -122,24 +127,26 @@ public enum JavaAdapter {
         })
     ;
 
-    private static void findIdentifiers(ParseTree tree, List<Element> addTo) {
+    private static void findIdentifiers(ParseTree tree, TokenStream ts, List<Element> addTo) {
         if (tree instanceof PrimaryContext) {
             PrimaryContext primary = (PrimaryContext) tree;
             if (primary.Identifier() != null) {
                 addTo.add(
                         new Element("usage").withAttribute("name", primary.Identifier().getText())
+                            .withPosition(primary.Identifier(), ts)
                 );
             }
         } else {
             for (int i = 0; i < tree.getChildCount(); i++) {
-                findIdentifiers(tree.getChild(i), addTo);
+                findIdentifiers(tree.getChild(i), ts, addTo);
             }
         }
     }
 
     private static Element handleClassDecl(ClassDeclarationContext ctx, TokenStream ts, Analyzer a, Element p) {
         Element e = new Element("class")
-                .withAttribute("name", ctx.Identifier().getText());
+                .withAttribute("name", ctx.Identifier().getText())
+                .withPosition(ctx, ts);
         if (ctx.type() != null) {
             e.withAttribute("extends", ctx.type().getText());
         }
@@ -160,16 +167,23 @@ public enum JavaAdapter {
         if (ctx.fieldDeclaration() != null) {
             return new Element("field")
                     .withAttribute("name", ctx.fieldDeclaration().variableDeclarators().getText())
-                    .withAttribute("type", ctx.fieldDeclaration().type().getText());
+                    .withAttribute("type", ctx.fieldDeclaration().type().getText())
+                    .withPosition(ctx, ts);
         } else if (ctx.methodDeclaration() != null) {
             Element e = new Element("method")
                     .withAttribute("name",
                             ctx.methodDeclaration().Identifier().getText()
-                    );
+                    ).withPosition(ctx, ts);
             String type = "void";
             if (ctx.methodDeclaration().type() != null)
                 type = ctx.methodDeclaration().type().getText();
-            List<BlockStatementContext> blocks = ctx.methodDeclaration().methodBody().block().blockStatement();
+            e.withAttribute("type", type);
+            List<BlockStatementContext> blocks;
+            if (ctx.methodDeclaration().methodBody() != null) {
+                blocks = ctx.methodDeclaration().methodBody().block().blockStatement();
+            } else {
+                blocks = new ArrayList<>();
+            }
             if (blocks != null) {
                 e.withChildren(a.analyze(blocks, ts, p));
             }

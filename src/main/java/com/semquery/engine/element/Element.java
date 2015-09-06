@@ -1,8 +1,10 @@
 package com.semquery.engine.element;
 
+import com.semquery.engine.parsers.SemQueryParser;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.misc.Interval;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 
@@ -40,7 +42,7 @@ public class Element {
         return this;
     }
 
-    public Element withPosition(RuleContext ctx, TokenStream ts) {
+    public Element withPosition(ParseTree ctx, TokenStream ts) {
         Interval itv = ctx.getSourceInterval();
         this.start = ts.get(itv.a).getStartIndex();
         this.end = ts.get(itv.b).getStopIndex();
@@ -168,6 +170,25 @@ public class Element {
         int insertIdx = list.size();
         list.add(insertIdx, obj);
         lookup.put(this, insertIdx);
+    }
+
+    public static Element fromParsed(SemQueryParser.ElementContext ctx) {
+        Element e = new Element(ctx.IDENTIFIER().getText());
+        for (SemQueryParser.Attribute_pairContext pair : ctx.attribute_pair()) {
+            String ident = pair.IDENTIFIER().getText();
+            if (pair.STRING() != null) {
+                String str = pair.STRING().getText();
+                str = str.substring(1, str.length() - 1);
+                e.withAttribute(ident, str);
+            } else if (pair.element() != null) {
+                e.withAttribute(ident, fromParsed(pair.element()));
+            }
+        }
+        for (SemQueryParser.ElementContext child : ctx.element()) {
+            e.withChild(fromParsed(child));
+        }
+
+        return e;
     }
 
 }
