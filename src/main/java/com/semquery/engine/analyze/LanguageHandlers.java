@@ -3,11 +3,9 @@ package com.semquery.engine.analyze;
 import com.semquery.engine.analyze.c.CAnalyzer;
 import com.semquery.engine.analyze.c.CInputStreamPreprocessor;
 import com.semquery.engine.analyze.java.JavaAnalyzer;
+import com.semquery.engine.analyze.js.JSAnalyzer;
 import com.semquery.engine.element.Element;
-import com.semquery.engine.parsers.CLexer;
-import com.semquery.engine.parsers.CParser;
-import com.semquery.engine.parsers.JavaLexer;
-import com.semquery.engine.parsers.JavaParser;
+import com.semquery.engine.parsers.*;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.TokenStream;
@@ -29,6 +27,8 @@ public class LanguageHandlers {
         CHandler cHandler = new CHandler();
         HANDLERS.put("c", cHandler);
         HANDLERS.put("h", cHandler);
+
+        HANDLERS.put("js", new JSHandler());
     }
 
     public static LanguageHandler handlerFor(String fileExt) {
@@ -58,6 +58,20 @@ public class LanguageHandlers {
             CParser parser = new CParser(ts);
 
             return analyzer.analyze(parser.compilationUnit(), ts, null);
+        }
+    }
+
+    private static class JSHandler implements LanguageHandler {
+        JSAnalyzer analyzer = new JSAnalyzer();
+
+        @Override
+        public Element createElement(InputStream in) throws IOException {
+            ANTLRInputStream antlrIn = new ANTLRInputStream(in);
+            ECMAScriptLexer lex = new ECMAScriptLexer(antlrIn);
+            TokenStream ts = new CommonTokenStream(lex);
+            ECMAScriptParser parser = new ECMAScriptParser(ts);
+
+            return analyzer.analyze(parser.program(), ts, null);
         }
     }
 
