@@ -1,7 +1,6 @@
 package com.semquery.engine.analyze.java;
 
 import com.semquery.engine.analyze.Analyzer;
-import com.semquery.engine.analyze.java.JavaAdapter;
 import com.semquery.engine.element.Element;
 import com.semquery.engine.element.ElementAdapter;
 import org.antlr.v4.runtime.RuleContext;

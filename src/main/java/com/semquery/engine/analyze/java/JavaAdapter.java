@@ -14,6 +14,7 @@ import static com.semquery.engine.parsers.JavaParser.*;
 
 public enum JavaAdapter {
         COMPILATION_UNIT(CompilationUnitContext.class, (CompilationUnitContext ctx, TokenStream ts, Analyzer a, Element p) -> {
+            System.out.println(ctx.getText());
             Element e = new Element("program");
             return e
                     .withPosition(ctx, ts)

@@ -3,21 +3,40 @@ package com.semquery.engine;
 import com.semquery.engine.analyze.Indexer;
 import com.semquery.engine.analyze.QueryManager;
 import com.semquery.engine.analyze.QueryValidator;
+import com.semquery.engine.parsers.ECMAScriptLexer;
+import com.semquery.engine.parsers.ECMAScriptParser;
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.TokenStream;
 
+import java.io.InputStream;
 import java.util.List;
 
 public class Engine {
 
 
     public static void main(String[] args) throws Exception {
+
+        /*
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        InputStream in = loader.getResourceAsStream("test.js");
+        ANTLRInputStream antlrIn = new ANTLRInputStream(in);
+        ECMAScriptLexer lex = new ECMAScriptLexer(antlrIn);
+        TokenStream ts = new CommonTokenStream(lex);
+        ECMAScriptParser parser = new ECMAScriptParser(ts);
+
+        System.out.println(parser.program().toStringTree(parser));
+        */
+
+        /*
         if (args.length < 2) {
             System.err.println("Expected >= 2 args");
             System.exit(1);
-        }
+        }*/
 
-        String cmd = args[0];
+        String cmd = "index"; //args[0];
         if (cmd.equals("index")) {
-            new Indexer(args[1], args[2]);
+            new Indexer("", "");
         } else if (cmd.equals("validate")) {
             String query = args[1];
             QueryValidator qv = new QueryValidator(query);

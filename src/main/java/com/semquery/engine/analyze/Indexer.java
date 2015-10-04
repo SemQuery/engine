@@ -48,10 +48,14 @@ public class Indexer {
 
         exec = Executors.newFixedThreadPool(10);
 
+        /*
         MongoClient client = new MongoClient();
         database = client.getDatabase("semquery");
+        */
 
-        File f = new File(rootFile);
+        //File f = new File(rootFile);
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        File f = new File(loader.getResource("test.js").getFile());
         fileCount = countFiles(f);
         recur(f);
 
@@ -113,11 +117,14 @@ public class Indexer {
             Map<Element, Integer> lookup = new HashMap<>();
             handleElem(ele, list, lookup);
 
+            System.out.println(list.toString());
+
+            /*
             Document obj = new Document("file", file.getPath())
                     .append("repo", repo)
                     .append("elements", list);
 
-            database.getCollection("files").insertOne(obj);
+            database.getCollection("files").insertOne(obj);*/
 
             int percent = Math.round(((float) files.incrementAndGet() / fileCount) * 100);
             if (percent > lastPercent.get()) {
