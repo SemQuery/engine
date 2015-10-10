@@ -69,9 +69,10 @@ public enum JSAdapter {
 
                 Element useEl = new Element("usage");
 
+                String[] nodes = arg_ctx.singleExpression().getText().split("\\.");
                 children.add(useEl
                         .withPosition(ctx, ts)
-                        .withAttribute("name", arg_ctx.getStart().getText()));
+                        .withAttribute("name", nodes[nodes.length - 1]));
             }
 
         });

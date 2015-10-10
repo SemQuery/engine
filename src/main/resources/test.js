@@ -1,6 +1,7 @@
-
 function hello() {
 
 }
 
-hello(), hello();
+hello = function() {
+
+};
